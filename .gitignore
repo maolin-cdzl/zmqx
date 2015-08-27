@@ -26,3 +26,12 @@
 *.exe
 *.out
 *.app
+
+# temp files
+*.swp
+
+# python object
+*.pyc
+
+# build dir
+/build*/
