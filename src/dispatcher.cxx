@@ -7,14 +7,14 @@ Dispatcher::Dispatcher() {
 Dispatcher::~Dispatcher() {
 }
 
-void Dispatcher::set_default(pb_msg_process_fn proc,void* args) {
-	m_default.proc = proc;
-	m_default.args = args;
+void Dispatcher::set_default(pb_default_process_fn proc,void* args) {
+	m_def_proc = proc;
+	m_def_args = args;
 }
 
 void Dispatcher::unset_default() {
-	m_default.proc = nullptr;
-	m_default.args = nullptr;
+	m_def_proc = nullptr;
+	m_def_args = nullptr;
 }
 
 void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,pb_msg_process_fn proc,void* args) {
@@ -55,8 +55,17 @@ int Dispatcher::deliver(const std::shared_ptr<google::protobuf::Message>& msg) {
 	if( it != m_processers.end() ) {
 		it->second.proc(msg,it->second.args);
 		return 1;
-	} else if( m_default.proc ) {
-		m_default.proc(msg,m_default.args);
+	} else if( m_def_proc ) {
+		m_def_proc(msg,0,m_def_args);
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int Dispatcher::trigger(int err) {
+	if( m_def_proc ) {
+		m_def_proc(nullptr,err,m_def_args);
 		return 0;
 	} else {
 		return -1;

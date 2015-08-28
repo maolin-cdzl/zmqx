@@ -72,6 +72,51 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	return msg;
 }
 
+int zpb_recv(google::protobuf::Message& msg,void* sock) {
+	int result = -1;
+	zmsg_t* zmsg = zmsg_recv(sock);
+
+	do {
+		zframe_t* fr = zmsg_first(zmsg);
+		if( nullptr == fr )
+			break;
+		if( ! zframe_streq(fr,"#pb") )
+			break;
+
+		fr = zmsg_next(zmsg);
+		if( nullptr == fr )
+			break;
+		if( ! zframe_streq(fr,msg.GetTypeName().c_str()) )
+			break;
+
+		fr = zmsg_next(zmsg);
+		if( nullptr == fr )
+			break;
+		if( zframe_size(fr) != 0 )
+			break;
+		
+		fr = zmsg_next(zmsg);
+		if( nullptr == fr )
+			break;
+
+		if( zframe_size(fr) > 0 ) {
+			if( ! msg.ParseFromArray( zframe_data(fr), zframe_size(fr) ) ) {
+				break;
+			}
+		} else if( ! msg.IsInitialized() ) {
+			break;
+		}
+
+		result = 0;
+	} while(0);
+
+	if( zmsg ) {
+		zmsg_destroy(&zmsg);
+	}
+
+	return result;
+}
+
 static google::protobuf::Message* create_message(const std::string& type_name)
 {
 	google::protobuf::Message* message = NULL;

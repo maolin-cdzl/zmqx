@@ -4,6 +4,7 @@
 class ZDispatcher {
 public:
 	ZDispatcher(zloop_t* loop);
+	~ZDispatcher();
 
 	int start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher);
 	int stop();

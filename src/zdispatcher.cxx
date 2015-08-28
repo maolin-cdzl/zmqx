@@ -8,6 +8,10 @@ ZDispatcher::ZDispatcher(zloop_t* loop) :
 {
 }
 
+ZDispatcher::~ZDispatcher() {
+	stop();
+}
+
 int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher) {
 	assert( sock );
 	assert( dispatcher );
@@ -41,6 +45,8 @@ int ZDispatcher::onReadable() {
 	auto msg = zpb_recv(m_sock);
 	if( msg ) {
 		m_dispatcher->deliver(msg);
+	} else {
+		m_dispatcher->trigger(-1);
 	}
 	return 0;
 }
