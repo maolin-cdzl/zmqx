@@ -9,9 +9,13 @@ add_library(zmqx STATIC
 	src/zhelper.c
 	src/zprotobuf.c
 	src/zprotobuf++.cxx
+	src/dispatcher.cxx
+	src/zdispatcher.cxx
 	include/zmqx/zhelper.h
 	include/zmqx/zprotobuf.h
 	include/zmqx/zprotobuf++.h
+	include/zmqx/dispatcher.h
+	include/zmqx/zdispatcher.h
 )
 
 target_include_directories(zmqx

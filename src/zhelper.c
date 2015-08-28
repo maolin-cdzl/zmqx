@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "zmqx/zhelper.h"
 
-uint64_t ri_time_now() {
+uint64_t time_now() {
 	uint64_t now;
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC,&ts);
