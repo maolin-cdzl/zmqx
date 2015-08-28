@@ -16,9 +16,8 @@ int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatch
 	assert( sock );
 	assert( dispatcher );
 
-	if( m_sock || dispatcher )
+	if( m_sock || m_dispatcher )
 		return -1;
-
 
 	if( 0 == zloop_reader(m_loop,sock,readableAdapter,this) ) {
 		m_sock = sock;
