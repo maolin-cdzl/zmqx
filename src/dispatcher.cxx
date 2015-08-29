@@ -1,30 +1,28 @@
 #include "zmqx/dispatcher.h"
 
-Dispatcher::Dispatcher() {
-	unset_default();
+using namespace std::placeholders;
+
+Dispatcher::Dispatcher() :
+	m_default(std::bind(&Dispatcher::defaultNothing,_1,_2,nullptr))
+{
 }
 
 Dispatcher::~Dispatcher() {
 }
 
 void Dispatcher::set_default(pb_default_process_fn proc,void* args) {
-	m_def_proc = proc;
-	m_def_args = args;
+	m_default = std::bind(proc,_1,_2,args);
 }
 
 void Dispatcher::unset_default() {
-	m_def_proc = nullptr;
-	m_def_args = nullptr;
+	m_default = std::bind(&Dispatcher::defaultNothing,_1,_2,nullptr); 
 }
 
 void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,pb_msg_process_fn proc,void* args) {
 	assert( desc );
 	assert( proc );
 
-	processer_t pt;
-	pt.proc = proc;
-	pt.args = args;
-
+	processer_t pt = std::bind(proc,_1,args);
 	m_processers.insert( std::make_pair(desc,pt) );
 }
 
@@ -53,22 +51,18 @@ void Dispatcher::unregister_processer(const std::string& type) {
 int Dispatcher::deliver(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto it = m_processers.find( msg->GetDescriptor() );
 	if( it != m_processers.end() ) {
-		it->second.proc(msg,it->second.args);
+		(it->second)(msg);
 		return 1;
-	} else if( m_def_proc ) {
-		m_def_proc(msg,0,m_def_args);
-		return 0;
 	} else {
-		return -1;
+		m_default(msg,0);
+		return 0;
 	}
 }
 
-int Dispatcher::trigger(int err) {
-	if( m_def_proc ) {
-		m_def_proc(nullptr,err,m_def_args);
-		return 0;
-	} else {
-		return -1;
-	}
+void Dispatcher::trigger(int err) {
+	m_default(nullptr,err);
+}
+
+void Dispatcher::defaultNothing(const std::shared_ptr<google::protobuf::Message>&,int,void*) {
 }
 
