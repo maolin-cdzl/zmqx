@@ -29,5 +29,8 @@ target_link_libraries(zmqx PUBLIC
 	zmq
 	protobuf-c
 	protobuf
+	glog
+	gflags
 )
 
+add_subdirectory(test)

@@ -31,7 +31,7 @@ public:
 	template<typename C,typename F>
 	void register_member_processer(const google::protobuf::Descriptor* desc,F func,C* obj) {
 		processer_t pt = std::bind(func,obj,std::placeholders::_1);
-		m_processers.insert( std::make_pair(desc,pt) );
+		m_processers[desc] = pt;
 	}
 
 	template<typename C,typename F>

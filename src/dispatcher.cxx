@@ -23,7 +23,7 @@ void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,pb_
 	assert( proc );
 
 	processer_t pt = std::bind(proc,_1,args);
-	m_processers.insert( std::make_pair(desc,pt) );
+	m_processers[desc] = pt;
 }
 
 void Dispatcher::register_processer(const std::string& type,pb_msg_process_fn proc,void* args) {
