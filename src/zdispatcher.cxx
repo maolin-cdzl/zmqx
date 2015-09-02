@@ -42,7 +42,6 @@ int ZDispatcher::stop() {
 
 
 int ZDispatcher::onReadable() {
-	DLOG(INFO) << "ZDispatcher::onReadable";
 	auto msg = zpb_recv(m_sock);
 	if( msg ) {
 		m_dispatcher->deliver(msg);
