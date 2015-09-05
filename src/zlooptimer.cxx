@@ -133,9 +133,9 @@ int ZLoopTimeouter::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 	assert(self->m_func);
 
 	if( time_now() >= self->m_tv_timeout ) {
-		auto func = self->m_func;
-		self->stop();
-		func();
+		if( -1 == self->m_func() ) {
+			self->stop();
+		}
 	}
 
 	return 0;

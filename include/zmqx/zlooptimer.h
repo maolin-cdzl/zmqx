@@ -28,6 +28,7 @@ public:
 	ZLoopTimeouter(zloop_t* loop);
 	~ZLoopTimeouter();
 
+	// if callback func return -1,timer stop,0 means keep go on
 	int start(uint64_t period,uint64_t timeout,const std::function<int()>& func);
 	void stop();
 	bool isActive() const;
