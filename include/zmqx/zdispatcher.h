@@ -2,6 +2,7 @@
 
 #include <czmq.h>
 #include "zmqx/dispatcher.h"
+#include "zmqx/zloopreader.h"
 
 class ZDispatcher {
 public:
@@ -9,14 +10,15 @@ public:
 	~ZDispatcher();
 
 	int start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher);
-	int stop();
-
+	int start(zsock_t** p_sock,const std::shared_ptr<Dispatcher>& dispatcher);
+	void stop();
+	zsock_t* socket() const;
+	bool isActive() const;
 private:
-	int onReadable();
-	static int readableAdapter(zloop_t* loop,zsock_t* reader,void* args);
+	int onReadable(zsock_t* reader);
 private:
 	zloop_t*					m_loop;
-	zsock_t*					m_sock;
+	ZLoopReader					m_reader;
 	std::shared_ptr<Dispatcher>	m_dispatcher;
 };
 

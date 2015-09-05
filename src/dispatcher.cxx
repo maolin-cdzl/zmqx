@@ -14,6 +14,10 @@ void Dispatcher::set_default(pb_default_process_fn proc,void* args) {
 	m_default = std::bind(proc,_1,_2,args);
 }
 
+void Dispatcher::set_default(const default_process_t& proc) {
+	m_default = proc;
+}
+
 void Dispatcher::unset_default() {
 	m_default = std::bind(&Dispatcher::defaultNothing,_1,_2,nullptr); 
 }
@@ -22,8 +26,7 @@ void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,pb_
 	assert( desc );
 	assert( proc );
 
-	processer_t pt = std::bind(proc,_1,args);
-	m_processers[desc] = pt;
+	register_processer(desc,std::bind(proc,_1,args));
 }
 
 void Dispatcher::register_processer(const std::string& type,pb_msg_process_fn proc,void* args) {
@@ -31,7 +34,11 @@ void Dispatcher::register_processer(const std::string& type,pb_msg_process_fn pr
 	const google::protobuf::Descriptor* desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(type);
 
 	assert( desc );
-	register_processer(desc,proc,args);
+	register_processer(desc,std::bind(proc,_1,args));
+}
+
+void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,const processer_t& proc) {
+	m_processers[desc] = proc;
 }
 
 void Dispatcher::unregister_processer(const google::protobuf::Descriptor* desc) {

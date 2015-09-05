@@ -5,7 +5,7 @@
 
 ZDispatcher::ZDispatcher(zloop_t* loop) :
 	m_loop(loop),
-	m_sock(nullptr)
+	m_reader(loop)
 {
 }
 
@@ -13,15 +13,15 @@ ZDispatcher::~ZDispatcher() {
 	stop();
 }
 
-int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher) {
-	assert( sock );
+int ZDispatcher::start(zsock_t** p_sock,const std::shared_ptr<Dispatcher>& dispatcher) {
+	assert( p_sock );
+	assert( *p_sock );
 	assert( dispatcher );
 
-	if( m_sock || m_dispatcher )
+	if( m_reader.isActive() )
 		return -1;
 
-	if( 0 == zloop_reader(m_loop,sock,readableAdapter,this) ) {
-		m_sock = sock;
+	if( 0 == m_reader.start(p_sock,std::bind<int>(&ZDispatcher::onReadable,this,std::placeholders::_1)) ) {
 		m_dispatcher = dispatcher;
 		return 0;
 	} else {
@@ -29,32 +29,41 @@ int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatch
 	}
 }
 
-int ZDispatcher::stop() {
-	if( m_sock ) {
-		zloop_reader_end(m_loop,m_sock);
-		m_sock = nullptr;
-		m_dispatcher.reset();
+int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher) {
+	assert( sock );
+	assert( dispatcher );
+
+	if( m_reader.isActive() )
+		return -1;
+
+	if( 0 == m_reader.start(sock,std::bind<int>(&ZDispatcher::onReadable,this,std::placeholders::_1)) ) {
+		m_dispatcher = dispatcher;
 		return 0;
 	} else {
 		return -1;
 	}
 }
 
+void ZDispatcher::stop() {
+	m_reader.stop();
+	m_dispatcher.reset();
+}
 
-int ZDispatcher::onReadable() {
-	auto msg = zpb_recv(m_sock);
+zsock_t* ZDispatcher::socket() const {
+	return m_reader.socket();
+}
+
+bool ZDispatcher::isActive() const {
+	return m_reader.isActive();
+}
+
+int ZDispatcher::onReadable(zsock_t* reader) {
+	auto msg = zpb_recv(reader);
 	if( msg ) {
 		m_dispatcher->deliver(msg);
 	} else {
 		m_dispatcher->trigger(-1);
 	}
 	return 0;
-}
-
-int ZDispatcher::readableAdapter(zloop_t* loop,zsock_t* reader,void* args) {
-	(void)loop;
-	(void)reader;
-	ZDispatcher* self = (ZDispatcher*)args;
-	return self->onReadable();
 }
 

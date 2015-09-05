@@ -143,8 +143,8 @@ TEST(ZmqXTest,Dispatcher) {
 
 	// case 3
 	Processer proc;
-	disp->set_member_default(&Processer::processDefault,&proc);
-	disp->register_member_processer(test::Hello::descriptor(),&Processer::processHello,&proc);
+	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,std::placeholders::_1));
 
 	result = disp->deliver(hello);
 	ASSERT_EQ(result,1);
@@ -161,9 +161,9 @@ TEST(ZmqXTest,ZDispatcher) {
 	auto disp = std::make_shared<Dispatcher>();
 
 	Processer proc;
-	disp->set_member_default(&Processer::processDefault,&proc);
-	disp->register_member_processer(test::Hello::descriptor(),&Processer::processHello,&proc);
-	disp->register_member_processer(test::Shutdown::descriptor(),&Processer::processShutdown,&proc);
+	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,std::placeholders::_1));
+	disp->register_processer(test::Shutdown::descriptor(),std::bind(&Processer::processShutdown,&proc,std::placeholders::_1));
 
 	int result = -1;
 
