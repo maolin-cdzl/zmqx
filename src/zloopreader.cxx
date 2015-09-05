@@ -32,6 +32,15 @@ void ZLoopReader::stop() {
 	}
 }
 
+int ZLoopReader::rebind(const std::function<int(zsock_t*)>& func) {
+	if( m_sock ) {
+		m_func = func;
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 int ZLoopReader::readableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
 	(void)loop;
 	ZLoopReader* self = (ZLoopReader*)arg;

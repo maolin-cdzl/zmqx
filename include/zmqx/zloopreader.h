@@ -10,6 +10,8 @@ public:
 
 	int start(zsock_t* sock,const std::function<int(zsock_t*)>& func);
 	void stop();
+
+	int rebind(const std::function<int(zsock_t*)>& func);
 private:
 	static int readableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 private:

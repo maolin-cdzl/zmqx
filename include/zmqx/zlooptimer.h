@@ -11,6 +11,8 @@ public:
 
 	int start(size_t tv,size_t times,const std::function<int()>& func);
 	void stop();
+
+	int rebind(const std::function<int()>& func);
 private:
 	static int timerAdapter(zloop_t* loop,int timer_id,void* arg);
 private:

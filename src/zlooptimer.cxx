@@ -30,6 +30,15 @@ void ZLoopTimer::stop() {
 	}
 }
 
+int ZLoopTimer::rebind(const std::function<int()>& func) {
+	if( m_tid != -1 ) {
+		m_func = func;
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 int ZLoopTimer::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 	(void)loop;
 	(void)timer_id;
