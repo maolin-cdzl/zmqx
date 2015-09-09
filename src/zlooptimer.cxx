@@ -132,13 +132,17 @@ int ZLoopTimeouter::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 	ZLoopTimeouter* self = (ZLoopTimeouter*)arg;
 	assert(self->m_func);
 
+	int result = 0;
 	if( time_now() >= self->m_tv_timeout ) {
-		if( -1 == self->m_func() ) {
-			self->stop();
+		result = self->m_func();
+		if( -1 == result ) {
+			self->m_tid = -1;
+			self->m_tv_timeout = 0;
+			self->m_func = nullptr;
 		}
 	}
 
-	return 0;
+	return result;
 }
 
 
