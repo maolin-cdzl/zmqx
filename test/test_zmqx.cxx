@@ -29,7 +29,10 @@ public:
 	}
 };
 
-static void default_process(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
+// ASSERT_XXX can not used in function not return void!
+
+
+static void default_process_helper(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
 	if( err == 0 ) {
 		ASSERT_NE(msg,nullptr);
 	} else {
@@ -37,35 +40,49 @@ static void default_process(const std::shared_ptr<google::protobuf::Message>& ms
 	}
 }
 
-static void hello_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+static int default_process(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
+	(void)arg;
+	default_process_helper(msg,err);
+	return 0;
+}
+
+static void hello_process_helper(const std::shared_ptr<google::protobuf::Message>& msg) {
 	ASSERT_NE( msg,nullptr);
 	ASSERT_EQ(test::Hello::descriptor()->full_name(),msg->GetTypeName());
 	ASSERT_STREQ(TEST_STR,std::dynamic_pointer_cast<test::Hello>(msg)->str().c_str());
+}
 
+static int hello_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	hello_process_helper(msg);
 	if( arg ) {
 		*(int*)arg = 1;
 	}
+	return 0;
 }
 
-static void shutdown_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+static void shutdown_process_helper(const std::shared_ptr<google::protobuf::Message>& msg) {
 	ASSERT_NE( msg,nullptr);
 	ASSERT_EQ(test::Shutdown::descriptor()->full_name(),msg->GetTypeName());
+}
 
+static int shutdown_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	shutdown_process_helper(msg);
 	zsys_interrupted = 1;
+	return 0;
 }
 
 class Processer {
 public:
-	void processDefault(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
-		default_process(msg,err,nullptr);
+	int processDefault(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
+		return default_process(msg,err,nullptr);
 	}
 
-	void processHello(const std::shared_ptr<google::protobuf::Message>& msg) {
-		hello_process(msg,nullptr);
+	int processHello(const std::shared_ptr<google::protobuf::Message>& msg) {
+		return hello_process(msg,nullptr);
 	}
 
-	void processShutdown(const std::shared_ptr<google::protobuf::Message>& msg) {
-		shutdown_process(msg,nullptr);
+	int processShutdown(const std::shared_ptr<google::protobuf::Message>& msg) {
+		return shutdown_process(msg,nullptr);
 	}
 };
 

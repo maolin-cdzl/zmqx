@@ -8,11 +8,11 @@
 
 class Dispatcher {
 public:
-	typedef void (*pb_default_process_fn)(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* args);
-	typedef void (*pb_msg_process_fn)(const std::shared_ptr<google::protobuf::Message>& msg,void* args);
+	typedef int (*pb_default_process_fn)(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* args);
+	typedef int (*pb_msg_process_fn)(const std::shared_ptr<google::protobuf::Message>& msg,void* args);
 
-	typedef std::function<void(const std::shared_ptr<google::protobuf::Message>&,int)>	default_process_t;
-	typedef std::function<void(const std::shared_ptr<google::protobuf::Message>&)>		processer_t;
+	typedef std::function<int (const std::shared_ptr<google::protobuf::Message>&,int)>	default_process_t;
+	typedef std::function<int (const std::shared_ptr<google::protobuf::Message>&)>		processer_t;
 public:
 	Dispatcher();
 	~Dispatcher();
@@ -29,9 +29,9 @@ public:
 	void unregister_processer(const std::string& type);
 
 	int deliver(const std::shared_ptr<google::protobuf::Message>& msg);
-	void trigger(int err);
+	int trigger(int err);
 private:
-	static void defaultNothing(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* args);
+	static int defaultNothing(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* args);
 private:
 	default_process_t	m_default;
 	std::unordered_map<const google::protobuf::Descriptor*,processer_t> m_processers;

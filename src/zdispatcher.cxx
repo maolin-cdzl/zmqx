@@ -60,10 +60,10 @@ bool ZDispatcher::isActive() const {
 int ZDispatcher::onReadable(zsock_t* reader) {
 	auto msg = zpb_recv(reader);
 	if( msg ) {
-		m_dispatcher->deliver(msg);
+		return m_dispatcher->deliver(msg);
 	} else {
-		m_dispatcher->trigger(-1);
+		LOG(WARNING) << "ZDispatcher recv Protobuf message failed";
+		return m_dispatcher->trigger(-1);
 	}
-	return 0;
 }
 
