@@ -4,38 +4,35 @@
 using namespace std::placeholders;
 
 Dispatcher::Dispatcher() :
-	m_default(std::bind<int>(&Dispatcher::defaultNothing,_1,_2,nullptr))
+	m_default(std::bind<int>(&Dispatcher::defaultMessage,_1)),
+	m_err_handler(std::bind<int>(&Dispatcher::defaultError,_1))
 {
 }
 
 Dispatcher::~Dispatcher() {
 }
 
-void Dispatcher::set_default(pb_default_process_fn proc,void* args) {
-	m_default = std::bind<int>(proc,_1,_2,args);
-}
-
-void Dispatcher::set_default(const default_process_t& proc) {
+void Dispatcher::set_default(const processer_t& proc) {
 	m_default = proc;
 }
 
 void Dispatcher::unset_default() {
-	m_default = std::bind<int>(&Dispatcher::defaultNothing,_1,_2,nullptr); 
+	m_default = std::bind<int>(&Dispatcher::defaultMessage,_1); 
 }
 
-void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,pb_msg_process_fn proc,void* args) {
-	assert( desc );
-	assert( proc );
-
-	register_processer(desc,std::bind<int>(proc,_1,args));
+void Dispatcher::set_error_handler(const error_handler_t& handler) {
+	m_err_handler = handler;
 }
 
-void Dispatcher::register_processer(const std::string& type,pb_msg_process_fn proc,void* args) {
+void Dispatcher::unset_error_handler() {
+	m_err_handler = std::bind<int>(&Dispatcher::defaultError,_1);
+}
 
+void Dispatcher::register_processer(const std::string& type,const processer_t& proc) {
 	const google::protobuf::Descriptor* desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(type);
 
 	assert( desc );
-	register_processer(desc,std::bind<int>(proc,_1,args));
+	register_processer(desc,proc);
 }
 
 void Dispatcher::register_processer(const google::protobuf::Descriptor* desc,const processer_t& proc) {
@@ -61,20 +58,22 @@ int Dispatcher::deliver(const std::shared_ptr<google::protobuf::Message>& msg) {
 	if( it != m_processers.end() ) {
 		return (it->second)(msg);
 	} else {
-		return m_default(msg,0);
+		return m_default(msg);
 	}
 }
 
 int Dispatcher::trigger(int err) {
-	return m_default(nullptr,err);
+	return m_err_handler(err);
 }
 
-int Dispatcher::defaultNothing(const std::shared_ptr<google::protobuf::Message>& msg,int err,void*) {
-	if( msg ) {
-		LOG(WARNING) << "Dispatcher handle unprocess message: " << msg->GetTypeName();
-	} else {
-		LOG(WARNING) << "Dispatcher handle error: " << err;
-	}
+int Dispatcher::defaultMessage(const std::shared_ptr<google::protobuf::Message>& msg) {
+	LOG(WARNING) << "Dispatcher handle unprocess message: " << msg->GetTypeName();
 	return 0;
 }
+
+int Dispatcher::defaultError(int err) {
+	LOG(WARNING) << "Dispatcher handle error: " << err;
+	return 0;
+}
+
 

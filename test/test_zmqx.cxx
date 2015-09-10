@@ -32,17 +32,12 @@ public:
 // ASSERT_XXX can not used in function not return void!
 
 
-static void default_process_helper(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
-	if( err == 0 ) {
-		ASSERT_NE(msg,nullptr);
-	} else {
-		ASSERT_EQ(msg,nullptr);
-	}
+static void default_process_helper(const std::shared_ptr<google::protobuf::Message>& msg) {
+	ASSERT_NE(msg,nullptr);
 }
 
-static int default_process(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
-	(void)arg;
-	default_process_helper(msg,err);
+static int default_process(const std::shared_ptr<google::protobuf::Message>& msg) {
+	default_process_helper(msg);
 	return 0;
 }
 
@@ -52,7 +47,7 @@ static void hello_process_helper(const std::shared_ptr<google::protobuf::Message
 	ASSERT_STREQ(TEST_STR,std::dynamic_pointer_cast<test::Hello>(msg)->str().c_str());
 }
 
-static int hello_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+static int hello_process(void* arg,const std::shared_ptr<google::protobuf::Message>& msg) {
 	hello_process_helper(msg);
 	if( arg ) {
 		*(int*)arg = 1;
@@ -65,7 +60,7 @@ static void shutdown_process_helper(const std::shared_ptr<google::protobuf::Mess
 	ASSERT_EQ(test::Shutdown::descriptor()->full_name(),msg->GetTypeName());
 }
 
-static int shutdown_process(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+static int shutdown_process(const std::shared_ptr<google::protobuf::Message>& msg) {
 	shutdown_process_helper(msg);
 	zsys_interrupted = 1;
 	return 0;
@@ -73,16 +68,16 @@ static int shutdown_process(const std::shared_ptr<google::protobuf::Message>& ms
 
 class Processer {
 public:
-	int processDefault(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
-		return default_process(msg,err,nullptr);
+	int processDefault(const std::shared_ptr<google::protobuf::Message>& msg) {
+		return default_process(msg);
 	}
 
-	int processHello(const std::shared_ptr<google::protobuf::Message>& msg) {
-		return hello_process(msg,nullptr);
+	int processHello(void* arg,const std::shared_ptr<google::protobuf::Message>& msg) {
+		return hello_process(arg,msg);
 	}
 
 	int processShutdown(const std::shared_ptr<google::protobuf::Message>& msg) {
-		return shutdown_process(msg,nullptr);
+		return shutdown_process(msg);
 	}
 };
 
@@ -142,8 +137,8 @@ TEST(ZmqXTest,Dispatcher) {
 	int flag = 0;
 	int result = -1;
 
-	disp->set_default(default_process,nullptr);
-	disp->register_processer(test::Hello::descriptor()->full_name(),hello_process,&flag);
+	disp->set_default(default_process);
+	disp->register_processer(test::Hello::descriptor()->full_name(),std::bind<int>(&hello_process,&flag,std::placeholders::_1));
 
 	// case 1
 	auto hello = std::make_shared<test::Hello>();
@@ -160,11 +155,13 @@ TEST(ZmqXTest,Dispatcher) {
 
 	// case 3
 	Processer proc;
-	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1,std::placeholders::_2));
-	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,std::placeholders::_1));
+	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1));
+	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,&flag,std::placeholders::_1));
 
+	flag = 0;
 	result = disp->deliver(hello);
 	ASSERT_EQ(result,0);
+	ASSERT_EQ(flag,1);
 
 	result = disp->deliver(empty);
 	ASSERT_EQ(result,0);
@@ -178,8 +175,10 @@ TEST(ZmqXTest,ZDispatcher) {
 	auto disp = std::make_shared<Dispatcher>();
 
 	Processer proc;
-	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1,std::placeholders::_2));
-	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,std::placeholders::_1));
+	int flag = 0;
+
+	disp->set_default(std::bind(&Processer::processDefault,&proc,std::placeholders::_1));
+	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,&flag,std::placeholders::_1));
 	disp->register_processer(test::Shutdown::descriptor(),std::bind(&Processer::processShutdown,&proc,std::placeholders::_1));
 
 	int result = -1;
@@ -188,7 +187,8 @@ TEST(ZmqXTest,ZDispatcher) {
 	test::Hello hello;
 	hello.set_str(TEST_STR);
 	result = zpb_send(sender,hello);
-	ASSERT_EQ( result, 0 );
+	ASSERT_EQ(result, 0 );
+	ASSERT_EQ(1,flag);
 
 	test::Empty empty;
 	result = zpb_send(sender,empty);
