@@ -39,24 +39,28 @@ int zpbc_send(const ProtobufCMessage* m,void* dest,int more) {
 	assert( m );
 	assert( dest );
 
-	zmsg_t* zmsg = zmsg_new();
-	zmsg_addstr(zmsg,"#pb");
-	zmsg_addstr(zmsg,m->descriptor->name);
-	zmsg_addstr(zmsg,"");
+	zframe_t* fr = NULL;
+	const size_t fsize = protobuf_c_message_get_packed_size(m);
+	do {
+		if( -1 == zstr_sendm(dest,"#pb") )
+			break;
+		if( -1 == zstr_sendm(dest,m->descriptor->name) )
+			break;
 
-	size_t len = protobuf_c_message_get_packed_size(m);
-	if( len ) {
-		zframe_t* dfr = zframe_new(NULL,len);
-		protobuf_c_message_pack(m,(uint8_t*)zframe_data(dfr));
-		zmsg_append(zmsg,&dfr);
-	} else {
-		zmsg_addstr(zmsg,"");
+		fr = zframe_new(NULL,fsize);
+		if( fsize > 0 ) {
+			if( fsize != protobuf_c_message_pack(m,(uint8_t*)zframe_data(fr)) ) {
+				break;
+			}
+		}
+		return zframe_send(&fr,dest,(more ? ZMQ_SNDMORE : 0));
+	} while( 0 );
+
+	if( fr ) {
+		zframe_destroy(&fr);
 	}
-	if( more ) {
-		return zmsg_sendm(&zmsg,dest);
-	} else {
-		return zmsg_send(&zmsg,dest);
-	}
+	zsock_flush(dest);
+	return -1;
 }
 
 
@@ -65,48 +69,50 @@ ProtobufCMessage* zpbc_recv(zpbc_t* self,void* source) {
 	assert( source );
 
 	ProtobufCMessage* m = NULL;
+	zframe_t* fr = NULL;
 	char* name = NULL;
 	const ProtobufCMessageDescriptor* p = NULL;
 
-	zmsg_t* zmsg = zmsg_recv(source);
 	do {
-		zframe_t* fr = zmsg_first(zmsg);
+		// magic part
+		fr = zframe_recv(source);
 		if( NULL == fr )
 			break;
 		if( ! zframe_streq(fr,"#pb") )
 			break;
+		zframe_destroy(&fr);
 
-		fr = zmsg_next(zmsg);
-		if( NULL == fr )
+		// name part
+		if( ! zsock_rcvmore(source) )
 			break;
-		name = zframe_strdup(fr);
+		name = zstr_recv(source);
 		if( NULL == name )
 			break;
 		p = (const ProtobufCMessageDescriptor*) zhash_lookup(self->pbmsg_hash,name);
 		if( NULL == p )
 			break;
+		zstr_free(&name);
 
-		fr = zmsg_next(zmsg);
+		// body part
+		if( ! zsock_rcvmore(source) )
+			break;
+		fr = zframe_recv(source);
 		if( NULL == fr )
 			break;
-		if( zframe_size(fr) != 0 )
-			break;
-		
-		fr = zmsg_next(zmsg);
-		if( NULL == fr )
-			break;
-
 		m = protobuf_c_message_unpack(p,NULL,zframe_size(fr),zframe_data(fr));
+		zframe_destroy(&fr);
+
+		return m;
 	} while(0);
 
 	if( name ) {
-		free(name);
+		zstr_free(&name);
 	}
-	if( zmsg ) {
-		zmsg_destroy(&zmsg);
+	if( fr ) {
+		zframe_destroy(&fr);
 	}
-
-	return m;
+	zsock_flush(source);
+	return NULL;
 }
 
 
