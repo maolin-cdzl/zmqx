@@ -150,7 +150,7 @@ TEST(ZmqXTest,Dispatcher) {
 	hello->set_str(TEST_STR);
 
 	result = disp->deliver(hello);
-	ASSERT_EQ(result,1);
+	ASSERT_EQ(result,0);
 	ASSERT_EQ(flag,1);
 
 	// case 2
@@ -164,7 +164,7 @@ TEST(ZmqXTest,Dispatcher) {
 	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,std::placeholders::_1));
 
 	result = disp->deliver(hello);
-	ASSERT_EQ(result,1);
+	ASSERT_EQ(result,0);
 
 	result = disp->deliver(empty);
 	ASSERT_EQ(result,0);
