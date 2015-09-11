@@ -1,10 +1,7 @@
 #pragma once
 
+#include <string>
 #include <czmq.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 uint64_t time_now();
 
@@ -15,6 +12,4 @@ int zsock_connect_m(void* sock,size_t count,char* addrs[]);
 #define zmq_wait_readable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLIN,(tv))
 #define zmq_wait_writable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLOUT,(tv))
 
-#ifdef __cplusplus
-}
-#endif
+std::string read_router_source(zsock_t* sock);

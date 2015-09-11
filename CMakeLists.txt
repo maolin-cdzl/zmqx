@@ -6,8 +6,8 @@ set(CMAKE_C_FLAGS "-std=c99 -fPIC ${CMAKE_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC ${CMAKE_CXX_FLAGS}")
 
 add_library(zmqx STATIC
-	src/zhelper.c
 	src/zprotobuf.c
+	src/zhelper.cxx
 	src/zprotobuf++.cxx
 	src/dispatcher.cxx
 	src/zdispatcher.cxx

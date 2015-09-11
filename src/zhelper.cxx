@@ -33,4 +33,13 @@ int zsock_connect_m(void* sock,size_t count,char* addrs[]) {
 	return 0;
 }
 
+std::string read_router_source(zsock_t* sock) {
+	std::string source;
+	char* str = zstr_recv(sock);
+	if( str ) {
+		source = str;
+		zstr_free(&str);
+	}
+	return std::move(source);
+}
 
