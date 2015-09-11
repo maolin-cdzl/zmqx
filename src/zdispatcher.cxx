@@ -71,6 +71,7 @@ int ZDispatcher::onReadable(zsock_t* reader) {
 		if( m_source.empty() ) {
 			return m_dispatcher->trigger(-1);
 		}
+		DLOG(INFO) << "";
 	}
 
 	auto msg = zpb_recv(reader);

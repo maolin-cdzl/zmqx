@@ -1,5 +1,6 @@
 #include "zmqx/zprotobuf++.h"
 #include <google/protobuf/descriptor.h>
+#include <glog/logging.h>
 
 static std::shared_ptr<google::protobuf::Message> create_message(const std::string& type_name);
 
@@ -34,35 +35,58 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	do {
 		// magic part
 		fr = zframe_recv(sock);
-		if( nullptr == fr )
+		if( nullptr == fr ) {
+			LOG(WARNING) << "zpb magic frame null";
 			break;
-		if( ! zframe_streq(fr,"#pb") )
+		}
+		if( ! zframe_streq(fr,"#pb") ) {
+			char* magic = zframe_strdup(fr);
+			if( magic ) {
+				LOG(WARNING) << "zpb magic mismatched: " << magic;
+				free(magic);
+			} else {
+				LOG(WARNING) << "zpb magic frame is empty";
+			}
 			break;
+		}
 		zframe_destroy(&fr);
 
 		// name part
-		if( ! zsock_rcvmore(sock) )
+		if( ! zsock_rcvmore(sock) ) {
+			LOG(WARNING) << "zpb socket no more frame when recv message name";
 			break;
+		}
 		msg_name = zstr_recv(sock);
-		if( nullptr == msg_name )
+		if( nullptr == msg_name ) {
+			LOG(WARNING) << "zpb message name frame null";
 			break;
+		}
 
 		// body part
-		if( ! zsock_rcvmore(sock) )
+		if( ! zsock_rcvmore(sock) ) {
+			LOG(WARNING) << "zpb socket no more frame when recv message body";
 			break;
+		}
 		fr = zframe_recv(sock);
-		if( nullptr == fr )
+		if( nullptr == fr ) {
+			LOG(WARNING) << "zpb body frame null";
 			break;
-		
+		}
 
 		auto msg = create_message(msg_name);
+		if( msg == nullptr ) {
+			LOG(WARNING) << "zpb can not create message: " << msg_name;
+			break;
+		}
 		zstr_free(&msg_name);
 
 		if( zframe_size(fr) > 0 ) {
 			if( ! msg->ParseFromArray( zframe_data(fr), zframe_size(fr) ) ) {
+				LOG(WARNING) << "zpb message parse error";
 				break;
 			}
 		} else if( ! msg->IsInitialized() ) {
+			LOG(WARNING) << "zpb empty message is not initialized";
 			break;
 		}
 		zframe_destroy(&fr);
