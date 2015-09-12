@@ -5,7 +5,7 @@
 #include <memory>
 
 
-int zpb_send(void* sock,const google::protobuf::Message& msg,bool more=false);
+int zpb_send(void* sock,const google::protobuf::Message& msg,bool delimiter=false,bool more=false);
 
 std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock);
 

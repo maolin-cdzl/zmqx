@@ -4,9 +4,14 @@
 
 static std::shared_ptr<google::protobuf::Message> create_message(const std::string& type_name);
 
-int zpb_send(void* sock,const google::protobuf::Message& msg,bool more) {
+int zpb_send(void* sock,const google::protobuf::Message& msg,bool delimiter,bool more) {
 	zframe_t* fr = nullptr;
 	do {
+		if( delimiter ) {
+			if( -1 == zstr_sendm(sock,"") ) {
+				break;
+			}
+		}
 		if( -1 == zstr_sendm(sock,"#pb") )
 			break;
 		if( -1 == zstr_sendm(sock,msg.GetTypeName().c_str()) )
@@ -34,22 +39,34 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	char* msg_name = nullptr;
 	do {
 		// magic part
-		fr = zframe_recv(sock);
-		if( nullptr == fr ) {
-			LOG(WARNING) << "zpb magic frame null";
-			break;
-		}
-		if( ! zframe_streq(fr,"#pb") ) {
-			char* magic = zframe_strdup(fr);
-			if( magic ) {
-				LOG(WARNING) << "zpb magic mismatched: " << magic;
-				free(magic);
-			} else {
-				LOG(WARNING) << "zpb magic frame is empty";
+		bool magic_good = false;
+		do {
+			fr = zframe_recv(sock);
+			if( nullptr == fr ) {
+				LOG(WARNING) << "zpb magic frame null";
+				break;
 			}
+
+			if( zframe_size(fr) > 0 ) {
+				if( zframe_streq(fr,"#pb") ) {
+					magic_good = true;
+				} else {
+					LOG(WARNING) << "zpb magic mismatched";
+				}
+				zframe_destroy(&fr);
+				break;
+			}
+
+			zframe_destroy(&fr);
+			if( ! zsock_rcvmore(sock) ) {
+				LOG(WARNING) << "zpb socket no more frame when recv magic";
+				break;
+			}
+		} while(true);
+
+		if( ! magic_good ) {
 			break;
 		}
-		zframe_destroy(&fr);
 
 		// name part
 		if( ! zsock_rcvmore(sock) ) {
