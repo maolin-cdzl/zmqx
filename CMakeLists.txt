@@ -37,6 +37,7 @@ target_link_libraries(zmqx PUBLIC
 	protobuf
 	glog
 	gflags
+	uuid
 )
 
 add_subdirectory(test)
