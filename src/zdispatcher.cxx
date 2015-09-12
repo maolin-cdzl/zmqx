@@ -82,6 +82,20 @@ int ZDispatcher::sendback(const google::protobuf::Message& msg) {
 	return -1;
 }
 
+int ZDispatcher::shadow_sendback(const google::protobuf::Message& msg) {
+	do {
+		if( m_prepend ) {
+			if( -1 == m_prepend->shadow_sendm(m_reader.socket()) ) {
+				break;
+			}
+		}
+		return zpb_send(m_reader.socket(),msg);
+	} while(0);
+
+	zsock_flush(m_reader.socket());
+	return -1;
+}
+
 int ZDispatcher::onReadable(zsock_t* reader) {
 	if( m_prepend ) {
 		if( -1 == m_prepend->recv(reader) ) {

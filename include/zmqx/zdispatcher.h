@@ -18,6 +18,7 @@ public:
 	ZPrepend* prepend();
 
 	int sendback(const google::protobuf::Message& msg);
+	int shadow_sendback(const google::protobuf::Message& msg);
 private:
 	int onReadable(zsock_t* reader);
 private:

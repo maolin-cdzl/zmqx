@@ -55,6 +55,17 @@ int ZPrepend::sendm(void* sock) {
 	}
 }
 
+int ZPrepend::shadow_sendm(void* sock) const {
+	assert(sock);
+	if( m_pre ) {
+		zmsg_t* msg = zmsg_dup(m_pre);
+		if( msg ) {
+			return zmsg_sendm(&msg,sock);
+		}
+	}
+	return -1;
+}
+
 zmsg_t* ZPrepend::content() const {
 	return m_pre;
 }

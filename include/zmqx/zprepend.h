@@ -11,6 +11,7 @@ public:
 
 	int recv(void* sock);
 	int sendm(void* sock);
+	int shadow_sendm(void* sock) const;
 	zmsg_t* content() const;
 
 	static std::shared_ptr<ZPrepend> recv_new(void* sock);
