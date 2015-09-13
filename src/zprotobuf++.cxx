@@ -70,7 +70,6 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 				zframe_destroy(&fr);
 				break;
 			}
-			DLOG(INFO) << "drop empty frame";
 			zframe_destroy(&fr);
 			if( ! zsock_rcvmore(sock) ) {
 				DLOG(WARNING) << "zpb socket no more frame when recv magic";
@@ -156,7 +155,6 @@ int zpb_recv(google::protobuf::Message& msg,void* sock) {
 				zframe_destroy(&fr);
 				break;
 			}
-			DLOG(INFO) << "drop empty frame";
 			zframe_destroy(&fr);
 			if( ! zsock_rcvmore(sock) ) {
 				DLOG(WARNING) << "zpb socket no more frame when recv magic";
