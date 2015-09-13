@@ -4,23 +4,29 @@
 
 static std::shared_ptr<google::protobuf::Message> create_message(const std::string& type_name);
 
-int zpb_send(void* sock,const google::protobuf::Message& msg,bool delimiter,bool more) {
+static int zpb_do_send(void* sock,const google::protobuf::Message& msg,bool delimiter,bool more) {
 	zframe_t* fr = nullptr;
 	do {
 		if( delimiter ) {
 			if( -1 == zstr_sendm(sock,"") ) {
+				DLOG(ERROR) << "send delimiter failed";
 				break;
 			}
 		}
-		if( -1 == zstr_sendm(sock,"#pb") )
+		if( -1 == zstr_sendm(sock,"#pb") ) {
+			DLOG(ERROR) << "send magic failed";
 			break;
-		if( -1 == zstr_sendm(sock,msg.GetTypeName().c_str()) )
+		}
+		if( -1 == zstr_sendm(sock,msg.GetTypeName().c_str()) ) {
+			DLOG(ERROR) << "send message name failed";
 			break;
+		}
 
 		const size_t fsize = msg.ByteSize();
 		fr = zframe_new(nullptr,fsize);
 		if( fsize > 0 ) {
 			if( ! msg.SerializeToArray(zframe_data(fr),zframe_size(fr)) ) {
+				DLOG(ERROR) << "serialize message failed";
 				break;
 			}
 		}
@@ -34,6 +40,14 @@ int zpb_send(void* sock,const google::protobuf::Message& msg,bool delimiter,bool
 	return -1;
 }
 
+int zpb_send(void* sock,const google::protobuf::Message& msg,bool delimiter) {
+	return zpb_do_send(sock,msg,delimiter,false);
+}
+
+int zpb_sendm(void* sock,const google::protobuf::Message& msg,bool delimiter) {
+	return zpb_do_send(sock,msg,delimiter,true);
+}
+
 std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	zframe_t* fr = nullptr;
 	char* msg_name = nullptr;
@@ -43,7 +57,7 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 		do {
 			fr = zframe_recv(sock);
 			if( nullptr == fr ) {
-				LOG(WARNING) << "zpb magic frame null";
+				DLOG(WARNING) << "zpb magic frame null";
 				break;
 			}
 
@@ -51,15 +65,15 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 				if( zframe_streq(fr,"#pb") ) {
 					magic_good = true;
 				} else {
-					LOG(WARNING) << "zpb magic mismatched";
+					DLOG(WARNING) << "zpb magic mismatched";
 				}
 				zframe_destroy(&fr);
 				break;
 			}
-
+			DLOG(INFO) << "drop empty frame";
 			zframe_destroy(&fr);
 			if( ! zsock_rcvmore(sock) ) {
-				LOG(WARNING) << "zpb socket no more frame when recv magic";
+				DLOG(WARNING) << "zpb socket no more frame when recv magic";
 				break;
 			}
 		} while(true);
@@ -70,40 +84,40 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 
 		// name part
 		if( ! zsock_rcvmore(sock) ) {
-			LOG(WARNING) << "zpb socket no more frame when recv message name";
+			DLOG(WARNING) << "zpb socket no more frame when recv message name";
 			break;
 		}
 		msg_name = zstr_recv(sock);
 		if( nullptr == msg_name ) {
-			LOG(WARNING) << "zpb message name frame null";
+			DLOG(WARNING) << "zpb message name frame null";
 			break;
 		}
 
 		// body part
 		if( ! zsock_rcvmore(sock) ) {
-			LOG(WARNING) << "zpb socket no more frame when recv message body";
+			DLOG(WARNING) << "zpb socket no more frame when recv message body";
 			break;
 		}
 		fr = zframe_recv(sock);
 		if( nullptr == fr ) {
-			LOG(WARNING) << "zpb body frame null";
+			DLOG(WARNING) << "zpb body frame null";
 			break;
 		}
 
 		auto msg = create_message(msg_name);
 		if( msg == nullptr ) {
-			LOG(WARNING) << "zpb can not create message: " << msg_name;
+			DLOG(WARNING) << "zpb can not create message: " << msg_name;
 			break;
 		}
 		zstr_free(&msg_name);
 
 		if( zframe_size(fr) > 0 ) {
 			if( ! msg->ParseFromArray( zframe_data(fr), zframe_size(fr) ) ) {
-				LOG(WARNING) << "zpb message parse error";
+				DLOG(WARNING) << "zpb message parse error";
 				break;
 			}
 		} else if( ! msg->IsInitialized() ) {
-			LOG(WARNING) << "zpb empty message is not initialized";
+			DLOG(WARNING) << "zpb empty message is not initialized";
 			break;
 		}
 		zframe_destroy(&fr);
@@ -125,12 +139,34 @@ int zpb_recv(google::protobuf::Message& msg,void* sock) {
 	zframe_t* fr = nullptr;
 	do {
 		// magic part
-		fr = zframe_recv(sock);
-		if( nullptr == fr )
+		bool magic_good = false;
+		do {
+			fr = zframe_recv(sock);
+			if( nullptr == fr ) {
+				DLOG(WARNING) << "zpb magic frame null";
+				break;
+			}
+
+			if( zframe_size(fr) > 0 ) {
+				if( zframe_streq(fr,"#pb") ) {
+					magic_good = true;
+				} else {
+					DLOG(WARNING) << "zpb magic mismatched";
+				}
+				zframe_destroy(&fr);
+				break;
+			}
+			DLOG(INFO) << "drop empty frame";
+			zframe_destroy(&fr);
+			if( ! zsock_rcvmore(sock) ) {
+				DLOG(WARNING) << "zpb socket no more frame when recv magic";
+				break;
+			}
+		} while(true);
+
+		if( ! magic_good ) {
 			break;
-		if( ! zframe_streq(fr,"#pb") )
-			break;
-		zframe_destroy(&fr);
+		}
 
 		// name part
 		if( ! zsock_rcvmore(sock) )

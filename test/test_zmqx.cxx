@@ -10,24 +10,36 @@
 
 static const char* TEST_STR = "hello world";
 
-static zsock_t*			sender = nullptr;
-static zsock_t*			receiver = nullptr;
+class ZmqXTest: public testing::Test {
+protected:
+	static void SetUpTestCase() {
+		receiver = zsock_new(ZMQ_SUB);
+		CHECK_NOTNULL(receiver);
+		zsock_set_subscribe(receiver,"");
+		CHECK_NE(-1,zsock_connect(receiver,"tcp://127.0.0.1:7777")) << "connect receiver failed";
 
-class ZmqXEnv : public testing::Environment {
-public:
-	// Override this to define how to set up the environment.
-	virtual void SetUp() {
-		receiver = zsock_new_sub("tcp://127.0.0.1:7777","");
-		sender = zsock_new_pub("tcp://127.0.0.1:7777");
-		//make sure sub connected pub
+		sender = zsock_new(ZMQ_PUB);
+		CHECK_NOTNULL(sender);
+		CHECK_NE(-1,zsock_bind(sender,"tcp://127.0.0.1:7777")) << "bind sender failed";
+		//make sure connected
 		sleep(1);
+
+		zstr_send(sender,"test");
+		char* str = zstr_recv(receiver);
+		CHECK_STREQ("test",str);
+		zstr_free(&str);
 	}
-	// Override this to define how to tear down the environment.
-	virtual void TearDown() {
+	static void TearDownTestCase() {
 		zsock_destroy(&sender);
 		zsock_destroy(&receiver);
 	}
+
+	static zsock_t*			sender;
+	static zsock_t*			receiver;
 };
+
+zsock_t* ZmqXTest::sender = nullptr;
+zsock_t* ZmqXTest::receiver = nullptr;
 
 // ASSERT_XXX can not used in function not return void!
 
@@ -62,8 +74,7 @@ static void shutdown_process_helper(const std::shared_ptr<google::protobuf::Mess
 
 static int shutdown_process(const std::shared_ptr<google::protobuf::Message>& msg) {
 	shutdown_process_helper(msg);
-	zsys_interrupted = 1;
-	return 0;
+	return -1;
 }
 
 class Processer {
@@ -82,60 +93,108 @@ public:
 };
 
 
-TEST(ZmqXTest,ZPBPlusPlus) {
-	int result = -1;
+TEST_F(ZmqXTest,ZPBPlusPlus) {
 	test::Hello hello;
 	hello.set_str(TEST_STR);
 
 	// case 1
-	result = zpb_send(sender,hello);
-	ASSERT_EQ( result, 0 );
+	ASSERT_EQ(0,zpb_send(sender,hello));
 
 	auto msg = zpb_recv(receiver);
-	ASSERT_NE( msg,nullptr);
+	ASSERT_NE(nullptr,msg);
 	ASSERT_EQ(test::Hello::descriptor()->full_name(),msg->GetTypeName());
 	ASSERT_STREQ(TEST_STR,std::dynamic_pointer_cast<test::Hello>(msg)->str().c_str());
 
 	// case 2
-	result = zpb_send(sender,hello);
-	ASSERT_EQ( result, 0 );
+	ASSERT_EQ(0,zpb_send(sender,hello));
 	
 	hello.Clear();
-	result = zpb_recv(hello,receiver);
-	ASSERT_EQ( result, 0 );
+	ASSERT_EQ(0,zpb_recv(hello,receiver));
 	ASSERT_STREQ(TEST_STR,hello.str().c_str());
 
 	// case 3
 	test::Empty empty;
-	result = zpb_send(sender,empty);
-	ASSERT_EQ( result,0);
+	ASSERT_EQ(0,zpb_send(sender,empty));
 	
 	msg = zpb_recv(receiver);
-	ASSERT_NE( msg,nullptr);
+	ASSERT_NE(nullptr,msg);
 	ASSERT_EQ(test::Empty::descriptor()->full_name(),msg->GetTypeName());
 
 	// case 4
-	result = zpb_send(sender,empty);
-	ASSERT_EQ( result,0);
-	
-	result = zpb_recv(empty,receiver);
-	ASSERT_EQ( result,0);
+	ASSERT_EQ(0,zpb_send(sender,empty));
+	ASSERT_EQ(0,zpb_recv(empty,receiver));
 
 	// case 5
 	zstr_send(sender,"bad message");
-	msg = zpb_recv(receiver);
-	ASSERT_EQ(msg,nullptr);
+	ASSERT_EQ(nullptr,zpb_recv(receiver));
 
 	// case 6
 	zstr_send(sender,"bad message");
-	result = zpb_recv(empty,receiver);
-	ASSERT_EQ(result,-1);
+	ASSERT_EQ(-1,zpb_recv(empty,receiver));
+
+	// case 7
+	ASSERT_EQ(0,zpb_send(sender,hello,true));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 8
+	ASSERT_EQ(0,zpb_send(sender,hello,true));
+	ASSERT_EQ(0,zpb_recv(hello,receiver));
+
+	// case 9
+	ASSERT_EQ(0,zpb_sendm(sender,hello,false));
+	ASSERT_EQ(0,zpb_send(sender,hello));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 10
+	ASSERT_EQ(0,zpb_sendm(sender,hello,true));
+	ASSERT_EQ(0,zpb_send(sender,hello,true));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
 }
 
-TEST(ZmqXTest,Dispatcher) {
+TEST_F(ZmqXTest,ZPB_Reliability) {
+	test::Hello hello;
+	hello.set_str(TEST_STR);
+
+	// case 1
+	ASSERT_EQ(0,zstr_sendm(sender,""));
+	ASSERT_EQ(0,zstr_sendm(sender,""));
+	ASSERT_EQ(0,zpb_send(sender,hello,true));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 2
+	zstr_sendm(sender,"what ever");
+	zstr_send(sender,"xxxxxxxxx");
+	ASSERT_EQ(nullptr,zpb_recv(receiver));
+	ASSERT_EQ(0,zpb_send(sender,hello));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 3
+	zstr_send(sender,"#pb");
+	ASSERT_EQ(nullptr,zpb_recv(receiver));
+	ASSERT_EQ(0,zpb_send(sender,hello));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 4
+	zstr_sendm(sender,"#pb");
+	zstr_send(sender,"xxxxxxx");
+	ASSERT_EQ(nullptr,zpb_recv(receiver));
+	ASSERT_EQ(0,zpb_send(sender,hello));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+
+	// case 5
+	zstr_sendm(sender,"#pb");
+	zstr_sendm(sender,test::Hello::descriptor()->full_name().c_str());
+	zstr_send(sender,"xxxxxxxx");
+	ASSERT_EQ(nullptr,zpb_recv(receiver));
+	ASSERT_EQ(0,zpb_send(sender,hello));
+	ASSERT_NE(nullptr,zpb_recv(receiver));
+}
+
+TEST_F(ZmqXTest,Dispatcher) {
 	auto disp = std::make_shared<Dispatcher>();
 	int flag = 0;
-	int result = -1;
 
 	disp->set_default(default_process);
 	disp->register_processer(test::Hello::descriptor()->full_name(),std::bind<int>(&hello_process,&flag,std::placeholders::_1));
@@ -143,15 +202,13 @@ TEST(ZmqXTest,Dispatcher) {
 	// case 1
 	auto hello = std::make_shared<test::Hello>();
 	hello->set_str(TEST_STR);
-
-	result = disp->deliver(hello);
-	ASSERT_EQ(result,0);
-	ASSERT_EQ(flag,1);
+	
+	ASSERT_EQ(0,disp->deliver(hello));
+	ASSERT_EQ(1,flag);
 
 	// case 2
 	auto empty = std::make_shared<test::Empty>();
-	result = disp->deliver(empty);
-	ASSERT_EQ(result,0);
+	ASSERT_EQ(0,disp->deliver(empty));
 
 	// case 3
 	Processer proc;
@@ -159,17 +216,15 @@ TEST(ZmqXTest,Dispatcher) {
 	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,&flag,std::placeholders::_1));
 
 	flag = 0;
-	result = disp->deliver(hello);
-	ASSERT_EQ(result,0);
+	ASSERT_EQ(0,disp->deliver(hello));
 	ASSERT_EQ(flag,1);
 
-	result = disp->deliver(empty);
-	ASSERT_EQ(result,0);
+	ASSERT_EQ(0,disp->deliver(empty));
 
 	disp.reset();
 }
 
-TEST(ZmqXTest,ZDispatcher) {
+TEST_F(ZmqXTest,ZDispatcher) {
 	zloop_t* loop = zloop_new();
 	auto zdisp = std::make_shared<ZDispatcher>(loop);
 	auto disp = std::make_shared<Dispatcher>();
@@ -181,27 +236,23 @@ TEST(ZmqXTest,ZDispatcher) {
 	disp->register_processer(test::Hello::descriptor(),std::bind(&Processer::processHello,&proc,&flag,std::placeholders::_1));
 	disp->register_processer(test::Shutdown::descriptor(),std::bind(&Processer::processShutdown,&proc,std::placeholders::_1));
 
-	int result = -1;
-
 	// case 1
 	test::Hello hello;
 	hello.set_str(TEST_STR);
-	result = zpb_send(sender,hello);
-	ASSERT_EQ(result, 0 );
-	ASSERT_EQ(1,flag);
+	ASSERT_EQ(0,zpb_send(sender,hello));
 
 	test::Empty empty;
-	result = zpb_send(sender,empty);
-	ASSERT_EQ( result,0);
+	
+	ASSERT_EQ(0,zpb_send(sender,empty));
 
 	test::Shutdown shutdown;
-	result = zpb_send(sender,shutdown);
-	ASSERT_EQ( result,0);
+	ASSERT_EQ(0,zpb_send(sender,shutdown));
 
 	zdisp->start(receiver,disp);
 
-	result = zloop_start(loop);
-	ASSERT_EQ(result,0);
+	ASSERT_EQ(-1,zloop_start(loop));
+
+	ASSERT_EQ(1,flag);
 
 	zdisp.reset();
 	disp.reset();
@@ -213,7 +264,6 @@ TEST(ZmqXTest,ZDispatcher) {
 int main(int argc, char **argv) {
 	google::InitGoogleLogging(argv[0]);
 	zsys_init();
-	::testing::AddGlobalTestEnvironment(new ZmqXEnv());
 	::testing::InitGoogleTest(&argc, argv);
 	int result = RUN_ALL_TESTS();
 	zsys_shutdown();
