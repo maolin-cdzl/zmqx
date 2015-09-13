@@ -1,5 +1,5 @@
 #include <time.h>
-#include <assert.h>
+#include <glog/logging.h>
 #include <uuid/uuid.h>
 #include "zmqx/zhelper.h"
 
@@ -16,7 +16,7 @@ uint64_t time_now() {
 int zmq_wait_timeouted(void* sock,int ev,long timeout) {
 	zmq_pollitem_t pi[1];
 
-	assert(sock);
+	CHECK_NOTNULL(sock);
 
 	pi[0].socket = zsock_resolve(sock);
 	pi[0].fd = 0;

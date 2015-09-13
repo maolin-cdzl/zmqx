@@ -31,7 +31,7 @@ void Dispatcher::unset_error_handler() {
 void Dispatcher::register_processer(const std::string& type,const processer_t& proc) {
 	const google::protobuf::Descriptor* desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(type);
 
-	assert( desc );
+	CHECK_NOTNULL( desc );
 	register_processer(desc,proc);
 }
 
@@ -49,7 +49,7 @@ void Dispatcher::unregister_processer(const google::protobuf::Descriptor* desc) 
 void Dispatcher::unregister_processer(const std::string& type) {
 	const google::protobuf::Descriptor* desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(type);
 
-	assert( desc );
+	CHECK_NOTNULL( desc );
 	unregister_processer(desc);
 }
 

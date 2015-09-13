@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "zmqx/zprepend.h"
 
 ZPrepend::ZPrepend() :
@@ -18,7 +19,7 @@ ZPrepend::~ZPrepend() {
 }
 
 int ZPrepend::recv(void* sock) {
-	assert(sock);
+	CHECK_NOTNULL(sock);
 	if( m_pre != nullptr ) {
 		zmsg_destroy(&m_pre);
 	}
@@ -47,7 +48,7 @@ int ZPrepend::recv(void* sock) {
 }
 
 int ZPrepend::sendm(void* sock) {
-	assert(sock);
+	CHECK_NOTNULL(sock);
 	if( m_pre ) {
 		return zmsg_sendm(&m_pre,sock);
 	} else {
@@ -56,7 +57,7 @@ int ZPrepend::sendm(void* sock) {
 }
 
 int ZPrepend::shadow_sendm(void* sock) const {
-	assert(sock);
+	CHECK_NOTNULL(sock);
 	if( m_pre ) {
 		zmsg_t* msg = zmsg_dup(m_pre);
 		if( msg ) {
@@ -71,7 +72,7 @@ zmsg_t* ZPrepend::content() const {
 }
 
 std::shared_ptr<ZPrepend> ZPrepend::recv_new(void* sock) {
-	assert(sock);
+	CHECK_NOTNULL(sock);
 	zmsg_t* msg = zmsg_new();
 
 	do {

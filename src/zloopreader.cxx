@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "zmqx/zloopreader.h"
 
 
@@ -78,7 +79,7 @@ int ZLoopReader::rebind(const std::function<int(zsock_t*)>& func,const std::stri
 int ZLoopReader::readableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
 	(void)loop;
 	ZLoopReader* self = (ZLoopReader*)arg;
-	assert( self->m_func );
+	CHECK( self->m_func );
 	if( -1 == self->m_func(reader) ) {
 		if( self->m_own_sock ) {
 			zsock_destroy(&self->m_sock);

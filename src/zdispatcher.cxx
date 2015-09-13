@@ -14,9 +14,9 @@ ZDispatcher::~ZDispatcher() {
 }
 
 int ZDispatcher::start(zsock_t** p_sock,const std::shared_ptr<Dispatcher>& dispatcher,bool read_pre) {
-	assert( p_sock );
-	assert( *p_sock );
-	assert( dispatcher );
+	CHECK_NOTNULL( p_sock );
+	CHECK_NOTNULL( *p_sock );
+	CHECK( dispatcher );
 
 	if( m_reader.isActive() )
 		return -1;
@@ -33,8 +33,8 @@ int ZDispatcher::start(zsock_t** p_sock,const std::shared_ptr<Dispatcher>& dispa
 }
 
 int ZDispatcher::start(zsock_t* sock,const std::shared_ptr<Dispatcher>& dispatcher,bool read_pre) {
-	assert( sock );
-	assert( dispatcher );
+	CHECK_NOTNULL( sock );
+	CHECK( dispatcher );
 
 	if( m_reader.isActive() )
 		return -1;

@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "zmqx/zlooptimer.h"
 #include "zmqx/zhelper.h"
 
@@ -51,7 +52,7 @@ int ZLoopTimer::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 	(void)loop;
 	(void)timer_id;
 	ZLoopTimer* self = (ZLoopTimer*)arg;
-	assert(self->m_func);
+	CHECK(self->m_func);
 
 	bool finish = false;
 	if( self->m_times > 0 ) {
@@ -130,7 +131,7 @@ int ZLoopTimeouter::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 	(void)loop;
 	(void)timer_id;
 	ZLoopTimeouter* self = (ZLoopTimeouter*)arg;
-	assert(self->m_func);
+	CHECK(self->m_func);
 
 	int result = 0;
 	if( time_now() >= self->m_tv_timeout ) {
