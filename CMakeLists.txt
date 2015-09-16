@@ -9,11 +9,10 @@ add_library(zmqx STATIC
 	src/zprotobuf.c
 	src/zhelper.cxx
 	src/zprotobuf++.cxx
-	src/dispatcher.cxx
 	src/zdispatcher.cxx
 	src/zloopreader.cxx
 	src/zlooptimer.cxx
-	src/zprepend.cxx
+	src/zenvelope.cxx
 	include/zmqx/zhelper.h
 	include/zmqx/zprotobuf.h
 	include/zmqx/zprotobuf++.h
@@ -21,7 +20,7 @@ add_library(zmqx STATIC
 	include/zmqx/zdispatcher.h
 	include/zmqx/zloopreader.h
 	include/zmqx/zlooptimer.h
-	include/zmqx/zprepend.h
+	include/zmqx/zenvelope.h
 )
 
 target_include_directories(zmqx

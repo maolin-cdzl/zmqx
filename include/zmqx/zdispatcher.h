@@ -3,7 +3,7 @@
 #include <czmq.h>
 #include "zmqx/dispatcher.h"
 #include "zmqx/zloopreader.h"
-#include "zmqx/zprepend.h"
+#include "zmqx/zenvelope.h"
 
 class ZDispatcher {
 public:
@@ -15,7 +15,6 @@ public:
 	void stop();
 	zsock_t* socket() const;
 	bool isActive() const;
-	ZPrepend* prepend();
 
 	int sendback(const google::protobuf::Message& msg);
 	int shadow_sendback(const google::protobuf::Message& msg);
@@ -25,7 +24,7 @@ private:
 	zloop_t*					m_loop;
 	ZLoopReader					m_reader;
 	std::shared_ptr<Dispatcher>	m_dispatcher;
-	std::unique_ptr<ZPrepend>	m_prepend;
+	std::unique_ptr<ZEnvelope>	m_envelope;
 };
 
 
