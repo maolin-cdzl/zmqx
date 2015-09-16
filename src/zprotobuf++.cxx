@@ -36,7 +36,6 @@ static int zpb_do_send(void* sock,const google::protobuf::Message& msg,bool deli
 	if( fr ) {
 		zframe_destroy(&fr);
 	}
-	zsock_flush(sock);
 	return -1;
 }
 
