@@ -48,6 +48,21 @@ int zpb_sendm(void* sock,const google::protobuf::Message& msg,bool delimiter) {
 	return zpb_do_send(sock,msg,delimiter,true);
 }
 
+int zpb_send(void* sock,std::unique_ptr<ZEnvelope> envelope,const google::protobuf::Message& msg) {
+	if( 0 == ZEnvelope::sendm(std::move(envelope),sock) ) {
+		return zpb_send(sock,msg);
+	}
+	return -1;
+}
+
+int zpb_sendm(void* sock,std::unique_ptr<ZEnvelope> envelope,const google::protobuf::Message& msg) {
+	if( 0 == ZEnvelope::sendm(std::move(envelope),sock) ) {
+		return zpb_sendm(sock,msg);
+	}
+	return -1;
+}
+
+
 std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	zframe_t* fr = nullptr;
 	char* msg_name = nullptr;

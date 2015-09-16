@@ -168,6 +168,4 @@ private:
 	std::unordered_map<const google::protobuf::Descriptor*,processer_t> m_processers;
 };
 
-typedef base_dispatcher<>			Dispatcher;
-
 

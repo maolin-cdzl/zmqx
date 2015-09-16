@@ -6,7 +6,6 @@
 #include "test.pb.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/dispatcher.h"
-#include "zmqx/zdispatcher.h"
 
 static const char* TEST_STR = "hello world";
 
@@ -192,6 +191,7 @@ TEST_F(ZmqXTest,ZPB_Reliability) {
 	ASSERT_NE(nullptr,zpb_recv(receiver));
 }
 
+/*
 TEST_F(ZmqXTest,Dispatcher) {
 	auto disp = std::make_shared<Dispatcher>();
 	int flag = 0;
@@ -258,7 +258,7 @@ TEST_F(ZmqXTest,ZDispatcher) {
 	disp.reset();
 	zloop_destroy(&loop);
 }
-
+*/
 
 
 int main(int argc, char **argv) {

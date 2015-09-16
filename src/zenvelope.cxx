@@ -49,15 +49,11 @@ std::unique_ptr<ZEnvelope> ZEnvelope::recv(void* sock) {
 	return nullptr;
 }
 
-int ZEnvelope::sendm(std::unique_ptr<ZEnvelope>& envelope,void* sock) {
+int ZEnvelope::sendm(std::unique_ptr<ZEnvelope> envelope,void* sock) {
 	CHECK_NOTNULL(sock);
-	std::unique_ptr<ZEnvelope> e(std::move(envelope));
+	CHECK(envelope);
 
-	if( e->m_envelope ) {
-		return zmsg_sendm(&e->m_envelope,sock);
-	} else {
-		return -1;
-	}
+	return zmsg_sendm(&envelope->m_envelope,sock);
 }
 
 

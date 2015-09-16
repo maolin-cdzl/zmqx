@@ -12,7 +12,7 @@ public:
 	std::unique_ptr<ZEnvelope> clone() const;
 
 	static std::unique_ptr<ZEnvelope> recv(void* sock);
-	static int sendm(std::unique_ptr<ZEnvelope>& envelope,void* sock);
+	static int sendm(std::unique_ptr<ZEnvelope> envelope,void* sock);
 	static int send_delimiter(void* sock);
 	static int drop_delimiter(void* sock);
 private:
