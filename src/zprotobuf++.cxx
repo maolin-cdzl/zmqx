@@ -226,3 +226,60 @@ static std::shared_ptr<google::protobuf::Message> create_message(const std::stri
 	}
 	return nullptr;
 }
+
+
+int zpb_pub_send(void* sock,const std::string& envelope,const google::protobuf::Message& msg) {
+	CHECK_NOTNULL(sock);
+	CHECK(!envelope.empty());
+	CHECK(msg.IsInitialized());
+
+	if( -1 != zstr_sendm(sock,envelope.c_str()) ) {
+		if( -1 != zpb_send(sock,msg) ) {
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int zpb_pub_sendm(void* sock,const std::string& envelope,const google::protobuf::Message& msg) {
+	CHECK_NOTNULL(sock);
+	CHECK(!envelope.empty());
+	CHECK(msg.IsInitialized());
+
+	if( -1 != zstr_sendm(sock,envelope.c_str()) ) {
+		if( -1 != zpb_sendm(sock,msg) ) {
+			return 0;
+		}
+	}
+	return -1;
+}
+
+
+std::pair<std::string,std::shared_ptr<google::protobuf::Message>> zpb_sub_recv(void* sock) {
+	CHECK_NOTNULL(sock);
+	std::pair<std::string,std::shared_ptr<google::protobuf::Message>> result;
+	char* envelope = nullptr;
+
+	do {
+		envelope = zstr_recv(sock);
+		if( nullptr == envelope )
+			break;
+		result.first = envelope;
+		zstr_free(&envelope);
+
+		result.second = zpb_recv(sock);
+		if( nullptr == result.second )
+			break;
+
+		return std::move(result);
+	} while(0);
+
+	if( envelope ) {
+		zstr_free(&envelope);
+	}
+	result.first.clear();
+	result.second.reset();
+	return result;
+}
+
+
