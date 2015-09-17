@@ -1,10 +1,11 @@
+syntax = "proto3";
 package test;
 
 message Empty {
 }
 
 message Hello {
-	required string str = 1;
+	string str = 1;
 }
 
 message Shutdown {
