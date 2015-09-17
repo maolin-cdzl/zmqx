@@ -21,6 +21,15 @@ int zpb_envelop_deliver(const std::shared_ptr<envelope_dispatcher_t>& dispatcher
 	return dispatcher->trigger(-1);
 }
 
+int zpb_sub_deliver(const std::shared_ptr<sub_dispatcher_t>& dispatcher,zsock_t* sock) {
+	auto sub = zpb_sub_recv(sock);
+	if( sub.second ) {
+		CHECK( !sub.first.empty() );
+		return dispatcher->deliver(sub.second,sub.first);
+	}
+	return 0;
+}
+
 std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t* sock,const std::shared_ptr<sock_dispatcher_t>& dispatcher) {
 	auto reader = std::make_shared<ZLoopReader>(loop);
 
@@ -55,6 +64,26 @@ std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const 
 	auto reader = std::make_shared<ZLoopReader>(loop);
 
 	if( 0 == reader->start(sock,std::bind<int>(&zpb_envelop_deliver,dispatcher,std::placeholders::_1)) ) {
+		return reader;
+	} else {
+		return nullptr;
+	}
+}
+
+std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t* sock,const std::shared_ptr<sub_dispatcher_t>& dispatcher) {
+	auto reader = std::make_shared<ZLoopReader>(loop);
+
+	if( 0 == reader->start(sock,std::bind<int>(&zpb_sub_deliver,dispatcher,std::placeholders::_1)) ) {
+		return reader;
+	} else {
+		return nullptr;
+	}
+}
+
+std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const std::shared_ptr<sub_dispatcher_t>& dispatcher) {
+	auto reader = std::make_shared<ZLoopReader>(loop);
+
+	if( 0 == reader->start(sock,std::bind<int>(&zpb_sub_deliver,dispatcher,std::placeholders::_1)) ) {
 		return reader;
 	} else {
 		return nullptr;

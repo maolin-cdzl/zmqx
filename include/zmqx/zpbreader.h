@@ -15,6 +15,10 @@ typedef base_dispatcher<zsock_t*,std::unique_ptr<ZEnvelope>&> envelope_dispatche
 
 int zpb_envelop_deliver(const std::shared_ptr<envelope_dispatcher_t>& dispatcher,zsock_t* sock);
 
+typedef base_dispatcher<const std::string&>			sub_dispatcher_t;
+int zpb_sub_deliver(const std::shared_ptr<sub_dispatcher_t>& dispatcher,zsock_t* sock);
+
+
 std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t* sock,const std::shared_ptr<sock_dispatcher_t>& dispatcher);
 
 std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const std::shared_ptr<sock_dispatcher_t>& dispatcher);
@@ -22,5 +26,9 @@ std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const 
 std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t* sock,const std::shared_ptr<envelope_dispatcher_t>& dispatcher);
 
 std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const std::shared_ptr<envelope_dispatcher_t>& dispatcher);
+
+std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t* sock,const std::shared_ptr<sub_dispatcher_t>& dispatcher);
+
+std::shared_ptr<ZLoopReader> make_zpb_reader(zloop_t* loop,zsock_t** sock,const std::shared_ptr<sub_dispatcher_t>& dispatcher);
 
 
