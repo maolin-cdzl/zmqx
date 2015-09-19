@@ -1,85 +1,78 @@
 #include <glog/logging.h>
 #include "zmqx/zenvelope.h"
 
-ZEnvelope::ZEnvelope(zmsg_t** p_msg) :
-	m_envelope(*p_msg)
+ZEnvelope::ZEnvelope() {
+}
+
+ZEnvelope::ZEnvelope(std::vector<std::string>&& envelopes) :
+	m_envelopes(std::move(envelopes))
 {
-	*p_msg = nullptr;
 }
 
-ZEnvelope::~ZEnvelope() {
-	if( m_envelope ) {
-		zmsg_destroy(&m_envelope);
-	}
+size_t ZEnvelope::size() const {
+	return m_envelopes.size();
 }
 
-zmsg_t* ZEnvelope::envelope() const {
-	return m_envelope;
+const std::string& ZEnvelope::frame(size_t idx) const {
+	return m_envelopes[idx];
 }
 
-std::unique_ptr<ZEnvelope> ZEnvelope::clone() const {
-	zmsg_t* msg = nullptr;
-	if( m_envelope ) {
-		msg = zmsg_dup(m_envelope);
-	}
-	return std::unique_ptr<ZEnvelope>(new ZEnvelope(&msg));
-}
-
-std::unique_ptr<ZEnvelope> ZEnvelope::recv(void* sock) {
-	CHECK_NOTNULL(sock);
-	zmsg_t* msg = zmsg_new();
-
-	do {
-		zframe_t* fr = zframe_recv(sock);
-		if( nullptr == fr )
-			break;
-		const size_t len = zframe_size(fr);
-		zmsg_append(msg,&fr);
-		if( ! zsock_rcvmore(sock) ) {
-			break;
+int ZEnvelope::sendm(void* sock) const {
+	for(auto it=m_envelopes.begin(); it != m_envelopes.end(); ++it) {
+		CHECK(! it->empty());
+		zframe_t* fr = zframe_new(it->c_str(),it->size());
+		if( -1 == zframe_send(&fr,sock,ZFRAME_MORE) ) {
+			DLOG(FATAL) << "Send envelope failed";
+			if( fr ) {
+				zframe_destroy(&fr);
+			}
+			return -1;
 		}
-		if( len == 0 ) {
-			return std::move(std::unique_ptr<ZEnvelope>(new ZEnvelope(&msg)));
-		}
-	} while( 1 );
-
-	if( msg ) {
-		zmsg_destroy(&msg);
 	}
-	return nullptr;
+	
+	if( -1 == zstr_sendm(sock,"") ) {
+		DLOG(FATAL) << "Send envelope delimiter failed: " << errno;
+		return -1;
+	}
+	return 0;
 }
 
-int ZEnvelope::sendm(std::unique_ptr<ZEnvelope> envelope,void* sock) {
+std::shared_ptr<ZEnvelope> ZEnvelope::recv(void* sock) {
 	CHECK_NOTNULL(sock);
-	CHECK(envelope);
 
-	return zmsg_sendm(&envelope->m_envelope,sock);
-}
+	std::vector<std::string> envelopes;
 
-
-int ZEnvelope::send_delimiter(void* sock) {
-	return zstr_sendm(sock,"");
-}
-
-int ZEnvelope::drop_delimiter(void* sock) {
 	zframe_t* fr = nullptr;
 	do {
 		fr = zframe_recv(sock);
 		if( nullptr == fr )
 			break;
-		const size_t len = zframe_size(fr);
-		zframe_destroy(&fr);
-
 		if( ! zsock_rcvmore(sock) ) {
 			break;
 		}
+		const size_t len = zframe_size(fr);
 		if( len == 0 ) {
-			return 0;
+			zframe_destroy(&fr);
+			return std::make_shared<ZEnvelope>(std::move(envelopes));
+		} else {
+			envelopes.push_back(std::string((const char*)zframe_data(fr),zframe_size(fr)));
+			zframe_destroy(&fr);
 		}
 	} while( 1 );
 
+	if( fr ) {
+		zframe_destroy(&fr);
+	}
 	zsock_flush(sock);
-	return -1;
+	return nullptr;
 }
+
+int ZEnvelope::sendm(const std::shared_ptr<ZEnvelope> envelope,void* sock) {
+	CHECK_NOTNULL(sock);
+	CHECK(envelope);
+
+	return envelope->sendm(sock);
+}
+
 
 

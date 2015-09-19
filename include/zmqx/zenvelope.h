@@ -1,27 +1,23 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include <memory>
 #include <czmq.h>
 
 class ZEnvelope {
 public:
-	~ZEnvelope();
+	ZEnvelope();
+	ZEnvelope(std::vector<std::string>&& envelopes);
 
-	zmsg_t* envelope() const;
+	size_t size() const;
+	const std::string& frame(size_t idx) const;
 
-	std::unique_ptr<ZEnvelope> clone() const;
+	int sendm(void* sock) const;
 
-	static std::unique_ptr<ZEnvelope> recv(void* sock);
-	static int sendm(std::unique_ptr<ZEnvelope> envelope,void* sock);
-	static int send_delimiter(void* sock);
-	static int drop_delimiter(void* sock);
+	static std::shared_ptr<ZEnvelope> recv(void* sock);
+	static int sendm(const std::shared_ptr<ZEnvelope> envelope,void* sock);
 private:
-	ZEnvelope() = delete;
-	ZEnvelope(const ZEnvelope&) = delete;
-	ZEnvelope& operator = (const ZEnvelope&) = delete;
-
-	ZEnvelope(zmsg_t** p_msg);
-private:
-	zmsg_t*				m_envelope;
+	std::vector<std::string>			m_envelopes;
 };
 

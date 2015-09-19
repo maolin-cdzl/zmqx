@@ -11,7 +11,7 @@ typedef base_dispatcher<zsock_t*> sock_dispatcher_t;
 
 int zpb_deliver(const std::shared_ptr<sock_dispatcher_t>& dispatcher,zsock_t* sock);
 
-typedef base_dispatcher<zsock_t*,std::unique_ptr<ZEnvelope>&> envelope_dispatcher_t;
+typedef base_dispatcher<zsock_t*,const std::shared_ptr<ZEnvelope>&> envelope_dispatcher_t;
 
 int zpb_envelop_deliver(const std::shared_ptr<envelope_dispatcher_t>& dispatcher,zsock_t* sock);
 

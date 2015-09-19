@@ -15,10 +15,15 @@ ZLoopReader::~ZLoopReader() {
 }
 
 int ZLoopReader::start(zsock_t* sock,const std::function<int(zsock_t*)>& func,const std::string& state) {
-	if( nullptr != m_sock || nullptr == sock )
+	CHECK_NOTNULL(sock);
+
+	if( nullptr != m_sock ) {
+		DLOG(FATAL) << "m_sock is not NULL";
 		return -1;
+	}
 
 	if( -1 == zloop_reader(m_loop,sock,&ZLoopReader::readableAdapter,this) ) {
+		DLOG(FATAL) << "Can not start reader: " << errno;
 		return -1;
 	}
 	m_sock = sock;
