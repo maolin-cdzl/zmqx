@@ -12,6 +12,8 @@ int zsock_connect_m(void* sock,size_t count,char* addrs[]);
 
 std::string new_uuid();
 
+std::string new_short_identitiy();
+
 #define zmq_wait_readable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLIN,(tv))
 #define zmq_wait_writable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLOUT,(tv))
 

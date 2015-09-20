@@ -1,4 +1,7 @@
 #include <time.h>
+#include <mutex>
+#include <random>
+#include <chrono>
 #include <glog/logging.h>
 #include <uuid/uuid.h>
 #include "zmqx/zhelper.h"
@@ -41,3 +44,18 @@ std::string new_uuid() {
     uuid_unparse( uuid, s );
     return s;
 }
+
+std::string new_short_identitiy() {
+	static std::mutex						s_mutex;
+	static std::default_random_engine		s_generator(std::chrono::system_clock::now().time_since_epoch().count());
+
+	std::uniform_int_distribution<uint64_t> id_random(0,UINT64_MAX);
+	s_mutex.lock();
+	uint64_t id = id_random(s_generator);
+	s_mutex.unlock();
+
+	std::stringstream ss;
+	ss << std::hex << id;
+	return ss.str();
+}
+
