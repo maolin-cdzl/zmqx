@@ -66,7 +66,7 @@ std::string new_uuid() {
     return s;
 }
 
-std::string new_short_identity() {
+uint64_t new_short_bin_identity() {
 	static std::mutex						s_mutex;
 	static std::default_random_engine		s_generator(std::chrono::system_clock::now().time_since_epoch().count());
 
@@ -74,9 +74,12 @@ std::string new_short_identity() {
 	s_mutex.lock();
 	uint64_t id = id_random(s_generator);
 	s_mutex.unlock();
+	return id;
+}
 
+std::string new_short_identity() {
 	std::stringstream ss;
-	ss << std::hex << id;
+	ss << std::hex << new_short_bin_identity();
 	return ss.str();
 }
 

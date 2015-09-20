@@ -14,7 +14,12 @@ std::string zmq_pop_router_identity(zmsg_t* msg);
 
 std::string new_uuid();
 
+
+// it's multi-thread safe
 std::string new_short_identity();
+
+// it's multi-thread safe
+uint64_t new_short_bin_identity();
 
 #define zmq_wait_readable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLIN,(tv))
 #define zmq_wait_writable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLOUT,(tv))
