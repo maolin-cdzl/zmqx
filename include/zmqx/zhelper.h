@@ -9,6 +9,8 @@ int zmq_wait_timeouted(void* sock,int ev,long timeout);
 
 int zsock_connect_m(void* sock,size_t count,char* addrs[]);
 
+//Pop frame off front of message, If next frame is empty, pops and destroys that empty frame.
+std::string zmq_pop_router_identity(zmsg_t* msg);
 
 std::string new_uuid();
 

@@ -28,6 +28,27 @@ int zmq_wait_timeouted(void* sock,int ev,long timeout) {
 	return zmq_poll(pi,1,timeout);
 }
 
+std::string zmq_pop_router_identity(zmsg_t* msg) {
+	CHECK_NOTNULL(msg);
+	std::string id;
+
+	if( zmsg_size(msg) > 0 ) {
+		zframe_t* fr = zmsg_pop(msg);
+		if( fr ) {
+			id.assign((const char*)zframe_data(fr),zframe_size(fr));
+			zframe_destroy(&fr);
+
+			fr = zmsg_first(msg);
+			if( zframe_size(fr) == 0 ) {
+				fr = zmsg_pop(msg);
+				zframe_destroy(&fr);
+			}
+		}
+	}
+
+	return std::move(id);
+}
+
 int zsock_connect_m(void* sock,size_t count,char* addrs[]) {
 	void* s = zsock_resolve(sock);
 	for(size_t i=0; i < count; ++i) {
