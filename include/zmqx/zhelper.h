@@ -14,7 +14,7 @@ std::string zmq_pop_router_identity(zmsg_t* msg);
 
 std::string new_uuid();
 
-std::string new_short_identitiy();
+std::string new_short_identity();
 
 #define zmq_wait_readable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLIN,(tv))
 #define zmq_wait_writable(s,tv)			zmq_wait_timeouted((s),ZMQ_POLLOUT,(tv))

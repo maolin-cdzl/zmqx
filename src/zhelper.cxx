@@ -66,7 +66,7 @@ std::string new_uuid() {
     return s;
 }
 
-std::string new_short_identitiy() {
+std::string new_short_identity() {
 	static std::mutex						s_mutex;
 	static std::default_random_engine		s_generator(std::chrono::system_clock::now().time_since_epoch().count());
 
