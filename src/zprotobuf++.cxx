@@ -62,7 +62,7 @@ int zpb_sendm(void* sock,const std::shared_ptr<ZEnvelope>& envelope,const google
 }
 
 
-std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
+std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock,bool flush) {
 	zframe_t* fr = nullptr;
 	char* msg_name = nullptr;
 	do {
@@ -134,6 +134,10 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 			break;
 		}
 		zframe_destroy(&fr);
+
+		if( flush ) {
+			zsock_flush(sock);
+		}
 		return msg;
 	} while(0);
 
@@ -148,7 +152,7 @@ std::shared_ptr<google::protobuf::Message> zpb_recv(void* sock) {
 	return nullptr;
 }
 
-int zpb_recv(google::protobuf::Message& msg,void* sock) {
+int zpb_recv(google::protobuf::Message& msg,void* sock,bool flush) {
 	zframe_t* fr = nullptr;
 	do {
 		// magic part
@@ -205,6 +209,10 @@ int zpb_recv(google::protobuf::Message& msg,void* sock) {
 			break;
 		}
 		zframe_destroy(&fr);
+
+		if( flush ) {
+			zsock_flush(sock);
+		}
 		return 0;
 	} while(0);
 
@@ -267,7 +275,7 @@ std::pair<std::string,std::shared_ptr<google::protobuf::Message>> zpb_sub_recv(v
 		result.first = topic;
 		zstr_free(&topic);
 
-		result.second = zpb_recv(sock);
+		result.second = zpb_recv(sock,true);
 		if( nullptr == result.second )
 			break;
 
