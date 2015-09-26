@@ -239,7 +239,8 @@ static std::shared_ptr<google::protobuf::Message> create_message(const std::stri
 int zpb_pub_send(void* sock,const std::string& topic,const google::protobuf::Message& msg) {
 	CHECK_NOTNULL(sock);
 	CHECK(!topic.empty());
-	CHECK(msg.IsInitialized());
+	//CHECK(msg.IsInitialized());
+	msg.CheckInitialized();
 
 	if( -1 != zstr_sendm(sock,topic.c_str()) ) {
 		if( -1 != zpb_send(sock,msg) ) {

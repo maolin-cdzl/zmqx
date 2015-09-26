@@ -13,6 +13,7 @@ add_library(zmqx STATIC
 	src/zloopreader.cxx
 	src/zlooptimer.cxx
 	src/zenvelope.cxx
+	src/zrunner.cxx
 	include/zmqx/zhelper.h
 	include/zmqx/zprotobuf.h
 	include/zmqx/zprotobuf++.h
@@ -21,6 +22,7 @@ add_library(zmqx STATIC
 	include/zmqx/zloopreader.h
 	include/zmqx/zlooptimer.h
 	include/zmqx/zenvelope.h
+	include/zmqx/zrunner.h
 )
 
 target_include_directories(zmqx
