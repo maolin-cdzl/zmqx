@@ -11,7 +11,7 @@ ZRunner::~ZRunner() {
 	stop();
 }
 
-int ZRunner::start(const std::function<int(zsock_t*)>& routine) {
+int ZRunner::start(const std::function<void(zsock_t*)>& routine) {
 	CHECK( routine != nullptr );
 	if( m_actor ) {
 		return -1;
